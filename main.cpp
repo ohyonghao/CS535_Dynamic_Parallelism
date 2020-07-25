@@ -22,6 +22,18 @@ vector<T> generateList( size_t length ){
     return v;
 }
 
+template <typename T>
+ostream& operator<<(ostream& out, const vector<T> &list){
+
+    bool first = true;
+    for( const auto &item: list ){
+        if( !first ) out << ", ";
+        else first = false;
+        out << item;
+    }
+    return out;
+}
+
 template <typename T, typename F>
 void run_benchmark( vector<T> list, F f, bool benchmark ){
     chrono::system_clock::time_point start;
@@ -32,15 +44,11 @@ void run_benchmark( vector<T> list, F f, bool benchmark ){
     stop = chrono::high_resolution_clock::now();
 
     if( !benchmark ) cout << "Duration: ";
+    else cout << ", ";
     cout << chrono::duration_cast<chrono::microseconds>(stop - start).count();
-    if( !benchmark ) cout << " microseconds" << endl;
-    else cout << ",";
-
-    if( !benchmark ){
-        for( const auto &item: list ){
-            cout << item << ", ";
-        } cout << endl;
-    }
+    if( !benchmark )
+        cout << " microseconds" << endl
+             << list << endl;
 }
 
 void run_quicksort( size_t length, bool benchmark ){
@@ -81,10 +89,12 @@ int main(int argc, char** argv){
     size_t length = stoul(argv[1]);
     size_t iterations = stoul(argv[2]);
 
-    for( int i = 0; i < iterations; ++i ){
+    if( benchmark ) cout << "id, cpu_seq, cpu_par, gpu_par, gpu_dyn" << endl;
+    for( size_t i = 0; i < iterations; ++i ){
         if( !benchmark ) cout << "Iteration " << i << ":" << endl;
-        else cout << i << ",";
+        else cout << i;
         run_quicksort(length, benchmark);
+        cout << endl;
     }
 
     return 0;

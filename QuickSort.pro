@@ -7,7 +7,7 @@ SOURCES += \
         main.cpp
 
 QMAKE_CXXFLAGS += -std=c++17 -pthread -O2
-LIBS += -pthread
+LIBS += -pthread -ltbb
 
 CUDA_OBJECTS_DIR = OBJECTS_DIR/../cuda
 
