@@ -7,6 +7,7 @@
 #include <random>
 
 #include "quicksort_cpu.h"
+#include "quicksort_gpu.h"
 
 using namespace std;
 
@@ -73,11 +74,12 @@ void run_quicksort( size_t length, bool benchmark ){
     //***********************************************************************************************
     //***********************************************************************************************
     if(!benchmark) cout << "GPU Par" << endl;
-
+    run_benchmark(data, quicksort_gpu_par, benchmark);
 
     //***********************************************************************************************
     //***********************************************************************************************
     if(!benchmark) cout << "GPU Dynamic Par" << endl;
+    run_benchmark(data, quicksort_gpu_dyn, benchmark);
 
 }
 

@@ -105,5 +105,6 @@ INCLUDEPATH += $$CUDA_DIR/targets/x86_64-linux/include
 
 
 HEADERS += \
-    quicksort_cpu.h
+    quicksort_cpu.h \
+    quicksort_gpu.h
 
