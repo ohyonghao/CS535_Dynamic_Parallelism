@@ -5,9 +5,9 @@
 #include <execution>
 #include <vector>
 
-/*****
+/******************************************************************************
  * Implementation comes from overview at https://www.geeksforgeeks.org/quick-sort/
- *****/
+ ******************************************************************************/
 
 template <typename T>
 void quicksort_cpu_seq(std::vector<T> &list);
@@ -51,6 +51,11 @@ void quicksort_cpu_seq_imp( std::vector<T> &list, int low, int high){
         quicksort_cpu_seq_imp( list, p_i + 1, high);
     }
 }
+
+/******************************************************************************
+ * Currently just uses the TBB sort parallel algorithm, can change to cpu parallel
+ * quick sort later on.
+*******************************************************************************/
 
 template <typename T>
 void quicksort_cpu_par(std::vector<T> &list)

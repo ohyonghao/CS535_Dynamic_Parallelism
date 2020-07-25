@@ -10,6 +10,7 @@
 
 using namespace std;
 
+// Generates a list of size length using a uniform distribution
 template <typename T>
 vector<T> generateList( size_t length ){
     auto seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -22,6 +23,7 @@ vector<T> generateList( size_t length ){
     return v;
 }
 
+// Convenience function for printing lists of items in a vector
 template <typename T>
 ostream& operator<<(ostream& out, const vector<T> &list){
 
@@ -34,6 +36,8 @@ ostream& operator<<(ostream& out, const vector<T> &list){
     return out;
 }
 
+// Templatized function to take a list ( pass by copy intended ), a function to run, and whether to produce
+// benchmark output
 template <typename T, typename F>
 void run_benchmark( vector<T> list, F f, bool benchmark ){
     chrono::system_clock::time_point start;
@@ -51,6 +55,7 @@ void run_benchmark( vector<T> list, F f, bool benchmark ){
              << list << endl;
 }
 
+// Runs the quicksort algorithm on our suite of implementations
 void run_quicksort( size_t length, bool benchmark ){
 
     const auto data{generateList<int>( length )};
