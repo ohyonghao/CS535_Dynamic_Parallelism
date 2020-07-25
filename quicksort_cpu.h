@@ -5,10 +5,51 @@
 #include <execution>
 #include <vector>
 
+/*****
+ * Implementation comes from overview at https://www.geeksforgeeks.org/quick-sort/
+ *****/
+
+template <typename T>
+void quicksort_cpu_seq(std::vector<T> &list);
+template <typename T>
+size_t partition_cpu_seq( std::vector<T>& list, int low, int high );
+template <typename T>
+void quicksort_cpu_seq_imp( std::vector<T> &list, int low, int high);
+
 template <typename T>
 void quicksort_cpu_seq(std::vector<T> &list)
 {
-    sort(list.begin(), list.end());
+    quicksort_cpu_seq_imp(list, 0, list.size() - 1);
+}
+
+
+template <typename T>
+size_t partition_cpu_seq( std::vector<T>& list, int low, int high )
+{
+    auto pivot = list[high];
+
+    int i = low - 1;
+
+    for( int j = low; j <= high - 1; ++j ){
+        if( list[j] < pivot ){
+            ++i;
+            std::swap( list[i], list[j]);
+        }
+    }
+
+    std::swap( list[i+1], list[high]);
+    return i + 1;
+}
+
+template <typename T>
+void quicksort_cpu_seq_imp( std::vector<T> &list, int low, int high){
+    if( low < high )
+    {
+        auto p_i = partition_cpu_seq( list, low, high );
+
+        quicksort_cpu_seq_imp( list, low, p_i - 1);
+        quicksort_cpu_seq_imp( list, p_i + 1, high);
+    }
 }
 
 template <typename T>
