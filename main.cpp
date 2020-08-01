@@ -96,6 +96,7 @@ int main(int argc, char** argv){
     size_t length = stoul(argv[1]);
     size_t iterations = stoul(argv[2]);
 
+    initCuda();
     if( benchmark ) cout << "id, cpu_seq, cpu_par, gpu_par, gpu_dyn" << endl;
     for( size_t i = 0; i < iterations; ++i ){
         if( !benchmark ) cout << "Iteration " << i << ":" << endl;
