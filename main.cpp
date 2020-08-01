@@ -54,6 +54,11 @@ void run_benchmark( vector<T> list, F f, bool benchmark ){
     if( !benchmark )
         cout << " microseconds" << endl
              << list << endl;
+
+    if(!is_sorted(list.begin(),list.end())){
+        if( !benchmark )
+            cout << "!!Sort failed!!" << endl;
+    }
 }
 
 // Runs the quicksort algorithm on our suite of implementations
@@ -61,6 +66,7 @@ void run_quicksort( size_t length, bool benchmark ){
 
     const auto data{generateList<int>( length )};
 
+    if( !benchmark ) cout << data << endl;
     //***********************************************************************************************
     //***********************************************************************************************
     if( !benchmark ) cout << "CPU Seq" << endl;
