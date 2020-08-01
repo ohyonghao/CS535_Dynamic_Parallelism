@@ -4,6 +4,8 @@
 #include <cuda_runtime_api.h>
 #include <cuda_runtime.h>
 
+#include <iostream>
+
 template <typename T>
 __device__
 void swap_d(T& lhs, T& rhs){
@@ -31,7 +33,7 @@ size_t partition_gpu_par( int* d, int low, int high){
 
 __global__
 void quicksort_gpu_par_worker( int* d, int low, int high ){
-    if( high >= low ) return;
+    if( high <= low ) return;
 
     auto p = partition_gpu_par( d, low, high );
 
@@ -49,10 +51,25 @@ __host__
 void quicksort_gpu_par(std::vector<int> &list){
     // Detect settings
     // Copy to device
-    int *d;
-    cudaMalloc((void**)d, sizeof(int) * list.size() );
+    int *d{};
+    auto err = cudaMalloc((void**)&d, sizeof(int) * list.size() );
+    if( err != cudaSuccess ) {
+        std::cout << "CUDA ERROR Malloc" << err << std::endl;
+        return;
+    }
+    err = cudaMemcpy((void**)d, list.data(), sizeof(int) * list.size(), cudaMemcpyHostToDevice );
+    if( err != cudaSuccess ) {
+        std::cout << "CUDA ERROR Memcpy->Device" << err << std::endl;
+        cudaFree(d);
+        return;
+    }
     quicksort_gpu_par_worker<<<1,1>>>(d, 0, list.size() - 1);
-    cudaMemcpy((void**)d, list.data(), sizeof(int) * list.size(), cudaMemcpyHostToDevice );
+    err = cudaMemcpy(list.data(), (void**)d, sizeof(int) * list.size(), cudaMemcpyDeviceToHost );
+    if( err != cudaSuccess ) {
+        std::cout << "CUDA ERROR Memcpy->Host" << err << std::endl;
+        cudaFree(d);
+        return;
+    }
     cudaFree(d);
     // Launch kernel
     // Copy to host
