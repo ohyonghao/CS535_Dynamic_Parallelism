@@ -11,19 +11,16 @@
  ******************************************************************************/
 
 template <typename T>
-unsigned long quicksort_cpu_seq(std::vector<T> &list);
+void quicksort_cpu_seq(std::vector<T> &list);
 template <typename T>
 size_t partition_cpu_seq( std::vector<T>& list, int low, int high );
 template <typename T>
 void quicksort_cpu_seq_imp( std::vector<T> &list, int low, int high);
 
 template <typename T>
-unsigned long quicksort_cpu_seq(std::vector<T> &list)
+void quicksort_cpu_seq(std::vector<T> &list)
 {
-    auto start = std::chrono::high_resolution_clock::now();
     quicksort_cpu_seq_imp(list, 0, list.size() - 1);
-    auto stop = std::chrono::high_resolution_clock::now();
-    return std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
 }
 
 
@@ -62,12 +59,9 @@ void quicksort_cpu_seq_imp( std::vector<T> &list, int low, int high){
 *******************************************************************************/
 
 template <typename T>
-unsigned long quicksort_cpu_par(std::vector<T> &list)
+void quicksort_cpu_par(std::vector<T> &list)
 {
-    auto start = std::chrono::high_resolution_clock::now();
     sort(std::execution::par, list.begin(), list.end());
-    auto stop = std::chrono::high_resolution_clock::now();
-    return std::chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
 }
 
 

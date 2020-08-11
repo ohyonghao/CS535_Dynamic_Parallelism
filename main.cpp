@@ -54,7 +54,11 @@ ostream& operator<<(ostream& out, const vector<T> &list){
 template <typename T, typename F>
 void run_benchmark( vector<T> list, F f, bool benchmark ){
 
-    auto duration = f(list);
+    auto start = chrono::high_resolution_clock::now();
+    f(list);
+    auto stop = chrono::high_resolution_clock::now();
+
+    auto duration = chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
 
     if( !benchmark ) cout << "Duration: ";
     else cout << ", ";
@@ -64,8 +68,8 @@ void run_benchmark( vector<T> list, F f, bool benchmark ){
              << list << endl;
 
     if(!is_sorted(list.begin(),list.end())){
-        if( !benchmark )
-            cout << "!!Sort failed!!" << endl;
+        if( benchmark )
+            cout << "!!Sort failed!!" << endl << endl;
     }
 }
 
@@ -87,13 +91,13 @@ void run_quicksort( size_t length, bool benchmark ){
 
     //***********************************************************************************************
     //***********************************************************************************************
-//    if(!benchmark) cout << "GPU Par" << endl;
-//    run_benchmark(data, quicksort_gpu_par, benchmark);
+    if(!benchmark) cout << "GPU Dynamic Par" << endl;
+    run_benchmark(data, quicksort_gpu_dyn<int>, benchmark);
 
     //***********************************************************************************************
     //***********************************************************************************************
-    if(!benchmark) cout << "GPU Dynamic Par" << endl;
-    run_benchmark(data, quicksort_gpu_dyn<int>, benchmark);
+    if(!benchmark) cout << "GPU Non Dyn" << endl;
+    run_benchmark(data, quicksort_cpu_coordinated<int>, benchmark);
 
 }
 
@@ -111,7 +115,7 @@ int main(int argc, char** argv){
     size_t iterations = stoul(argv[2]);
 
     initCuda();
-    if( benchmark ) cout << "id, cpu_seq, cpu_par, gpu_dyn" << endl;
+    if( benchmark ) cout << "id, cpu_seq, cpu_par, gpu_dyn, gpu_non_dyn" << endl;
     for( size_t i = 0; i < iterations; ++i ){
         if( !benchmark ) cout << "Iteration " << i << ":" << endl;
         else cout << i;
