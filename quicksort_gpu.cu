@@ -156,24 +156,6 @@ void quicksort_gpu_par(std::vector<int> &list){
     cudaFree(d);
 }
 
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// \brief TILE_WIDTH
-///
-/// //////////////////////////////
-// Convenience function for printing lists of items in a vector
-template <typename T>
-std::ostream& operator<<(std::ostream& out, const std::vector<T> &list){
-
-    bool first = true;
-    for( const auto &item: list ){
-        if( !first ) out << ", ";
-        else first = false;
-        out << item;
-    }
-    return out;
-}
-
 constexpr unsigned int TILE_WIDTH = 32;
 template <typename T>
 __global__
@@ -190,23 +172,20 @@ template <typename T>
 __global__
 void qs_worker( T* data, size_t * qs_stack, size_t * qs_result_stack, size_t * ss_stack, unsigned int *qs_stack_size, unsigned int *ss_stack_size, unsigned int size){
     // thread_id to access the stack
-    // get bounds from stack
     auto idx = blockIdx.x * TILE_WIDTH + threadIdx.x;
 
     // guard against too many threads
     if( idx >= size ) return;
 
+    // get the bounds
     size_t low  = qs_stack[idx * 2];
     size_t high = qs_stack[idx * 2 + 1];
+
     // partition
     auto lh = partition_gpu( data, low, high);
-    // if left partition okay,
-        // atomicadd stack size (get this result)
-        // atomicadd function returns old value
-        // push to result stack
 
     if( low < lh.second ){
-        // Down to last MIN_SIZE
+        // if below MIN_SIZE send to selection sort
         if( lh.second - low < MIN_SIZE ){
             int idx = atomicAdd(ss_stack_size, 1);
             ss_stack[idx * 2] = low;
@@ -217,13 +196,9 @@ void qs_worker( T* data, size_t * qs_stack, size_t * qs_result_stack, size_t * s
             qs_result_stack[idx * 2 + 1] = lh.second;
         }
     }
-    // if right partition okay,
-        // atomicadd stack size (get this result)
-        // atomicadd function returns old value
-        // push to result stack
 
     if( lh.first < high ){
-        // Down to last MIN_SIZE
+        // if below MIN_SIZE send to selection sort
         if( high - lh.first < MIN_SIZE ){
             int idx = atomicAdd(ss_stack_size, 1);
             ss_stack[idx * 2] = lh.first;
@@ -243,40 +218,40 @@ void quicksort_cpu_coordinated(std::vector<T> &list){
     // data
     T *d{nullptr};
 
-    // qs stack
+    // QuickSort Stack
     size_t * qs_stack{nullptr};
-    // qs stack size
     unsigned int * qs_stack_size{nullptr};
-    // qs result stack
     size_t * qs_result_stack{nullptr};
 
-    // selection sort stack
+    // SelectionSort Stack
     size_t * ss_stack{nullptr};
-    // ss stack size
     unsigned int * ss_stack_size{nullptr};
-    // ss worker stack
     size_t * ss_worker_stack{nullptr};
 
     // local sizes
     unsigned int h_qs = 1;
     unsigned int h_ss = 0;
+
     // prime the stack
 
     auto err = cudaMalloc(reinterpret_cast<void**>(&qs_stack_size), sizeof(unsigned int));
          err = cudaMalloc(reinterpret_cast<void**>(&ss_stack_size), sizeof(unsigned int));
-         err = cudaMalloc( reinterpret_cast<void**>(&qs_stack),        sizeof(size_t) * 2);
-         err = cudaMalloc( reinterpret_cast<void**>(&qs_result_stack), sizeof(size_t) * 4);
-         err = cudaMalloc(reinterpret_cast<void**>(&ss_stack),         sizeof(size_t) * 4);
-         err = cudaMalloc(reinterpret_cast<void**>(&d),                sizeof(T) * list.size() );
+         err = cudaMalloc(reinterpret_cast<void**>(&qs_stack),        sizeof(size_t) * 2);
+         err = cudaMalloc(reinterpret_cast<void**>(&qs_result_stack), sizeof(size_t) * 4);
+         err = cudaMalloc(reinterpret_cast<void**>(&ss_stack),        sizeof(size_t) * 4);
+         err = cudaMalloc(reinterpret_cast<void**>(&d),               sizeof(T) * list.size() );
 
     if( err != cudaSuccess ){
         std::cout << "CUDA ERROR getting memory" << std::endl;
         return;
     }
 
+    // Copy data over
+    err = cudaMemcpy(reinterpret_cast<void**>(d), list.data(), sizeof(T)*list.size(), cudaMemcpyHostToDevice);
+
+    // Initialize first round
     err = cudaMemcpy(reinterpret_cast<void**>(qs_stack_size), reinterpret_cast<void**>(&h_qs), sizeof(unsigned int), cudaMemcpyHostToDevice);
     err = cudaMemcpy(reinterpret_cast<void**>(ss_stack_size), reinterpret_cast<void**>(&h_ss), sizeof(unsigned int), cudaMemcpyHostToDevice);
-    err = cudaMemcpy(reinterpret_cast<void**>(d), list.data(), sizeof(T)*list.size(), cudaMemcpyHostToDevice);
 
     std::vector<size_t> init{0, list.size()-1};
     err = cudaMemcpy(reinterpret_cast<void**>(qs_result_stack), init.data(), sizeof(size_t) * 2, cudaMemcpyHostToDevice);
@@ -286,57 +261,58 @@ void quicksort_cpu_coordinated(std::vector<T> &list){
         return;
     }
 
-    while( h_qs || h_ss ){ // qs stack size || ss stack size > 0
-        // if ss stack size > 0
-            // swap ss worker stack and ss stack
-            // create new stack for qs ? what is this for?
-            // launch ss worker with ss worker stack
-
+    // Check if there is any work to do
+    while( h_qs || h_ss ){
         if( h_ss ){
             // loads the ss_stack into ss_worker_stack
             std::swap( ss_worker_stack, ss_stack);
+
             // launch kernel for selection sort
             ss_worker<<<(h_ss + TILE_WIDTH - 1 )/TILE_WIDTH, TILE_WIDTH >>>(d, ss_worker_stack, h_ss );
 
+            // reset size of stack
             h_ss = 0;
             err = cudaMemcpy(reinterpret_cast<void**>(ss_stack_size), reinterpret_cast<void**>(&h_ss), sizeof(unsigned int), cudaMemcpyHostToDevice);
         }
-        // free ss stack ( this was either unused last round, or are finished)
+
+        // free ss stack ( this was either unused last round, or we are finished)
         cudaFree(ss_stack);
         ss_stack = nullptr;
 
-
-        // if qs stack size > 0
-            // allocate ss stack with (qs stack size * 2)  to ensure if all reach threshold at same time we can accomadate
-            // swap qs_stack and qs_result_stack
-            // allocate result stack to qs stack size * 2
-            // launch kernel
-
         if( h_qs ){
-            size_t size = h_qs;
-            h_qs = 0;
-            cudaMalloc(reinterpret_cast<void**>(&ss_stack), sizeof(size_t) * size * 2 );
+            // load the qs_result_stack into qs_stack
             std::swap(qs_stack, qs_result_stack);
             cudaFree(qs_result_stack);
+
+            // make both stacks large enough to accomodate all partitions
+            size_t size = h_qs;
+            err = cudaMalloc(reinterpret_cast<void**>(&ss_stack), sizeof(size_t) * size * 2 );
             err = cudaMalloc(reinterpret_cast<void**>(&qs_result_stack), sizeof(size_t) * size * 2 );
             if( err != cudaSuccess ){
                 std::cout << "CUDA ERROR getting memory in loop" << std::endl;
                 return;
             }
 
+            // reset size of stack
+            h_qs = 0;
             err = cudaMemcpy(reinterpret_cast<void**>(qs_stack_size), reinterpret_cast<void**>(&h_qs), sizeof(unsigned int), cudaMemcpyHostToDevice);
+
             // launch kernel
             qs_worker<<<(size + TILE_WIDTH - 1)/TILE_WIDTH, TILE_WIDTH >>>(d, qs_stack, qs_result_stack, ss_stack, qs_stack_size, ss_stack_size, size);
         }
 
+        // wait for work to be done on both QuickSort and SelectionSort
         cudaDeviceSynchronize();
 
+        // Copy back how much work is to be done
         err = cudaMemcpy(reinterpret_cast<void**>(&h_qs), reinterpret_cast<void**>(qs_stack_size), sizeof(unsigned int), cudaMemcpyDeviceToHost);
         err = cudaMemcpy(reinterpret_cast<void**>(&h_ss), reinterpret_cast<void**>(ss_stack_size), sizeof(unsigned int), cudaMemcpyDeviceToHost);
     }
 
+    // Copy back results
     err = cudaMemcpy(list.data(), (void**)d, sizeof(T) * list.size(), cudaMemcpyDeviceToHost );
-    // deallocate spaces
+
+    // Deallocate GPU memory
     cudaFree(qs_stack_size);
     cudaFree(qs_stack);
     cudaFree(qs_result_stack);
