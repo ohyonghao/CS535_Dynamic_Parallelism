@@ -3,7 +3,8 @@
 
 #include <vector>
 
-void quicksort_gpu_par(std::vector<int> &list);
-void quicksort_gpu_dyn(std::vector<int> &list);
+unsigned long quicksort_gpu_par(std::vector<int> &list);
+template <typename T>
+unsigned long quicksort_gpu_dyn(std::vector<T> &list);
 void initCuda();
 #endif // QUICKSORT_GPU_H

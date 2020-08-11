@@ -24,6 +24,18 @@ vector<T> generateList( size_t length ){
     return v;
 }
 
+template<>
+vector<float> generateList<float>( size_t length ){
+    auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+    default_random_engine generator(seed);
+    uniform_real_distribution<float> distribution(0, length);
+
+    vector<float> v(length);
+    generate(v.begin(),v.end(),[&]{ return distribution(generator);});
+
+    return v;
+}
+
 // Convenience function for printing lists of items in a vector
 template <typename T>
 ostream& operator<<(ostream& out, const vector<T> &list){
@@ -41,16 +53,12 @@ ostream& operator<<(ostream& out, const vector<T> &list){
 // benchmark output
 template <typename T, typename F>
 void run_benchmark( vector<T> list, F f, bool benchmark ){
-    chrono::system_clock::time_point start;
-    chrono::system_clock::time_point stop;
 
-    start = chrono::high_resolution_clock::now();
-    f(list);
-    stop = chrono::high_resolution_clock::now();
+    auto duration = f(list);
 
     if( !benchmark ) cout << "Duration: ";
     else cout << ", ";
-    cout << chrono::duration_cast<chrono::microseconds>(stop - start).count();
+    cout << duration;
     if( !benchmark )
         cout << " microseconds" << endl
              << list << endl;
@@ -79,13 +87,13 @@ void run_quicksort( size_t length, bool benchmark ){
 
     //***********************************************************************************************
     //***********************************************************************************************
-    if(!benchmark) cout << "GPU Par" << endl;
-    run_benchmark(data, quicksort_gpu_par, benchmark);
+//    if(!benchmark) cout << "GPU Par" << endl;
+//    run_benchmark(data, quicksort_gpu_par, benchmark);
 
     //***********************************************************************************************
     //***********************************************************************************************
     if(!benchmark) cout << "GPU Dynamic Par" << endl;
-    run_benchmark(data, quicksort_gpu_dyn, benchmark);
+    run_benchmark(data, quicksort_gpu_dyn<int>, benchmark);
 
 }
 
@@ -103,7 +111,7 @@ int main(int argc, char** argv){
     size_t iterations = stoul(argv[2]);
 
     initCuda();
-    if( benchmark ) cout << "id, cpu_seq, cpu_par, gpu_par, gpu_dyn" << endl;
+    if( benchmark ) cout << "id, cpu_seq, cpu_par, gpu_dyn" << endl;
     for( size_t i = 0; i < iterations; ++i ){
         if( !benchmark ) cout << "Iteration " << i << ":" << endl;
         else cout << i;

@@ -40,7 +40,7 @@ CUDA_LIBS_DIR=$$CUDA_DIR/lib64
 CUDA_INC+= $$CUDA_DIR/include
 
 ## NVCC_OPTIONS - any further options for the compiler
-NVCC_OPTIONS += -O2 #--use_fast_math --ptxas-options=-v
+NVCC_OPTIONS += -O2 --expt-relaxed-constexpr #--use_fast_math --ptxas-options=-v
 
 ## correctly formats CUDA_COMPUTE_ARCH to CUDA_ARCH with code gen flags
 ## resulting format example: -gencode arch=compute_20,code=sm_20
