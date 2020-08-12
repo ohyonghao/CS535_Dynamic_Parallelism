@@ -122,40 +122,6 @@ void quicksort_gpu_dyn(std::vector<T> &list){
     cudaFree(d);
 }
 
-
-void quicksort_gpu_par(std::vector<int> &list){
-    // Detect settings
-    // Copy to device
-    int *d{};
-    auto err = cudaMalloc((void**)&d, sizeof(int) * list.size() );
-    if( err != cudaSuccess ) {
-        std::cout << "CUDA ERROR Malloc" << err << std::endl;
-        return;
-    }
-    err = cudaMemcpy((void**)d, list.data(), sizeof(int) * list.size(), cudaMemcpyHostToDevice );
-    if( err != cudaSuccess ) {
-        std::cout << "CUDA ERROR Memcpy->Device" << err << std::endl;
-        cudaFree(d);
-        return;
-    }
-    err = cudaDeviceSetLimit(cudaLimitDevRuntimeSyncDepth, 24);
-    if( err != cudaSuccess ){
-        std::cout << "CUDA ERROR set cudaLimitDevRuntimeSyncDepth" << std::endl;
-        return;
-    }
-
-    quicksort_gpu_dyn_worker<<<1,1>>>(d, 0, list.size() - 1, 0);
-    cudaDeviceSynchronize();
-
-    err = cudaMemcpy(list.data(), (void**)d, sizeof(int) * list.size(), cudaMemcpyDeviceToHost );
-    if( err != cudaSuccess ) {
-        std::cout << "CUDA ERROR Memcpy->Host" << err << std::endl;
-        cudaFree(d);
-        return;
-    }
-    cudaFree(d);
-}
-
 constexpr unsigned int TILE_WIDTH = 32;
 template <typename T>
 __global__
