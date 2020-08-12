@@ -52,7 +52,7 @@ ostream& operator<<(ostream& out, const vector<T> &list){
 // Templatized function to take a list ( pass by copy intended ), a function to run, and whether to produce
 // benchmark output
 template <typename T, typename F>
-void run_benchmark( vector<T> list, F f, bool benchmark ){
+long run_benchmark( vector<T> list, F f, bool benchmark ){
 
     auto start = chrono::high_resolution_clock::now();
     f(list);
@@ -60,45 +60,41 @@ void run_benchmark( vector<T> list, F f, bool benchmark ){
 
     auto duration = chrono::duration_cast<std::chrono::microseconds>(stop - start).count();
 
-    if( !benchmark ) cout << "Duration: ";
-    else cout << ", ";
-    cout << duration;
-    if( !benchmark )
-        cout << " microseconds" << endl
-             << list << endl;
+    if( !benchmark ) cout << ", " << duration;
 
-    if(!is_sorted(list.begin(),list.end())){
-        if( benchmark )
-            cout << "!!Sort failed!!" << endl << endl;
-    }
+    if( !benchmark && !is_sorted(list.begin(),list.end()) ) cout << " !!Sort failed!! ";
+
+    return duration;
 }
 
 // Runs the quicksort algorithm on our suite of implementations
-void run_quicksort( size_t length, bool benchmark ){
+vector<long> run_quicksort( size_t length, bool benchmark ){
 
     const auto data{generateList<int>( length )};
 
+    vector<long> runtime;
     if( !benchmark ) cout << data << endl;
     //***********************************************************************************************
     //***********************************************************************************************
     if( !benchmark ) cout << "CPU Seq" << endl;
-    run_benchmark(data, quicksort_cpu_seq<int>, benchmark);
+    runtime.push_back(run_benchmark(data, quicksort_cpu_seq<int>, benchmark));
 
     //***********************************************************************************************
     //***********************************************************************************************
     if(!benchmark) cout << "CPU Par" << endl;
-    run_benchmark(data, quicksort_cpu_par<int>, benchmark);
+    runtime.push_back(run_benchmark(data, quicksort_cpu_par<int>, benchmark));
 
     //***********************************************************************************************
     //***********************************************************************************************
     if(!benchmark) cout << "GPU Dynamic Par" << endl;
-    run_benchmark(data, quicksort_gpu_dyn<int>, benchmark);
+    runtime.push_back(run_benchmark(data, quicksort_gpu_dyn<int>, benchmark));
 
     //***********************************************************************************************
     //***********************************************************************************************
     if(!benchmark) cout << "GPU Non Dyn" << endl;
-    run_benchmark(data, quicksort_cpu_coordinated<int>, benchmark);
+    runtime.push_back(run_benchmark(data, quicksort_cpu_coordinated<int>, benchmark));
 
+    return runtime;
 }
 
 int main(int argc, char** argv){
@@ -111,17 +107,26 @@ int main(int argc, char** argv){
     }
 
     bool benchmark{argc >= 4};
-    size_t length = stoul(argv[1]);
-    size_t iterations = stoul(argv[2]);
+    const size_t length = stoul(argv[1]);
+    const size_t iterations = stoul(argv[2]);
 
+    vector<vector<long>> runtimes;
     initCuda();
-    if( benchmark ) cout << "id, cpu_seq, cpu_par, gpu_dyn, gpu_non_dyn" << endl;
+    if( !benchmark ) cout << "id, cpu_seq, cpu_par, gpu_dyn, gpu_non_dyn" << endl;
     for( size_t i = 0; i < iterations; ++i ){
-        if( !benchmark ) cout << "Iteration " << i << ":" << endl;
-        else cout << i;
-        run_quicksort(length, benchmark);
-        cout << endl;
+        if( !benchmark ) cout << i << endl;
+        runtimes.push_back(run_quicksort(length, benchmark));
     }
 
+    // Print averages
+    if( benchmark ){
+        vector<double> averages(4, 0);
+        // transform to averages
+        for( auto i = 0ul; i < iterations; ++i ){
+            for( auto j = 0ul; j < 4ul; ++j)
+                averages[j] += runtimes[i][j]/4.0;
+        }
+        cout << averages << endl;
+    }
     return 0;
 }
