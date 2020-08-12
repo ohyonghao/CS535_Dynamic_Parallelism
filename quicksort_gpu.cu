@@ -20,7 +20,7 @@ void swap_d(T& lhs, T& rhs){
 template <typename T>
 __device__
 void selection_sort_gpu(T* d, int low, int high){
-    for( auto i = low; i <= high; ++i){
+    for( auto i = low; i <= high - 1; ++i){
         auto min_val = d[i];
         auto min_idx = i;
 
@@ -32,7 +32,8 @@ void selection_sort_gpu(T* d, int low, int high){
                 min_val = val_j;
             }
         }
-        swap_d(d[i], d[min_idx]);
+        if( i != min_idx )
+            swap_d(d[i], d[min_idx]);
     }
 }
 
